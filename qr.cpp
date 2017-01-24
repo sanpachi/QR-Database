@@ -18,6 +18,7 @@ using std::setw;
 
 constexpr uint64_t MAX = 0x100000000;
 constexpr uint32_t BLOCK_SIZE = 0x01000000;
+constexpr uint32_t SPLIT_SIZE = 100;
 
 uint32_t encode(uint64_t rand[]) {
     uint64_t r = 0;
@@ -56,8 +57,8 @@ off_t fileSize(const string& fname) {
 }
 
 int create() {
-    FILE* fps[17];
-    for (int i = 0; i < 17; i++) {
+    FILE* fps[SPLIT_SIZE];
+    for (int i = 0; i < SPLIT_SIZE; i++) {
         auto fname = filename(i);
         fps[i] = fopen(fname.c_str(), "wb");
     }
@@ -72,8 +73,7 @@ int create() {
             entries[i] = (seed << 32) | result(seed);
         }
         for (int i = 0; i < BLOCK_SIZE; i++) {
-            uint32_t last = (entries[i] & 0xFFFFFFFF) % 17;
-            auto seed = entries[i] >> 32;
+            uint32_t last = (entries[i] & 0xFFFFFFFF) % SPLIT_SIZE;
             fwrite(&entries[i], sizeof(uint64_t), 1, fps[last]);
         }
     }
@@ -105,7 +105,7 @@ void writeEntries(int i, const vector<T>& entries) {
 }
 
 int sort() {
-    for (int i = 0; i < 17; i++) {
+    for (uint32_t i = 0; i < SPLIT_SIZE; i++) {
         printf("i = %d\n", i);
         auto entries = fetchEntries<uint64_t>(i);
         auto sz = entries.size();
@@ -152,7 +152,7 @@ int search() {
         scanf("%ld", rand + i);
     }
     auto r = encode(rand);
-    auto fname = filename(static_cast<int>(rand[6]));
+    auto fname = filename(static_cast<int>(r % SPLIT_SIZE));
     FILE* fp = fopen(fname.c_str(), "rb");
     auto sz = fileSize(fname) / sizeof(uint32_t);
 
