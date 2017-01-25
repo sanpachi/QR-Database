@@ -1,7 +1,7 @@
 #include <sys/stat.h>
 #include <cstdint>
-#include <cstdio>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -10,6 +10,9 @@
 #include "./SFMT/SFMT.h"
 #include "./parallel-radix-sort/parallel_radix_sort.h"
 
+using std::cin;
+using std::cout;
+using std::endl;
 using std::vector;
 using std::string;
 using std::stringstream;
@@ -19,6 +22,13 @@ using std::setw;
 const uint64_t MAX = 0x100000000;
 const uint32_t BLOCK_SIZE = 0x01000000;
 const uint32_t SPLIT_SIZE = 100;
+
+template <typename T>
+string toHex(T num, uint32_t radix) {
+    std::stringstream ss;
+    ss << std::hex << std::setw(radix) << std::setfill('0') << num;
+    return ss.str();
+}
 
 uint32_t encode(uint64_t rand[]) {
     uint64_t r = 0;
@@ -65,8 +75,7 @@ int create() {
     vector<uint64_t> entries;
     entries.resize(BLOCK_SIZE);
     for (uint64_t count = 0; count < MAX; count += BLOCK_SIZE) {
-        if (count % 0x100000 == 0)
-            printf("%08x\n", static_cast<uint32_t>(count));
+        if (count % 0x100000 == 0) cout << toHex(count, 8) << endl;
 #pragma omp parallel for
         for (int i = 0; i < BLOCK_SIZE; i++) {
             auto seed = count + i;
@@ -147,9 +156,9 @@ bool ok(uint32_t seed, uint64_t* rand, int len) {
 int search() {
     uint64_t rand[15];
     int n;
-    scanf("%d", &n);
+    cin >> n;
     for (int i = 0; i < n; i++) {
-        scanf("%ld", rand + i);
+        cin >> rand[i];
     }
     auto r = encode(rand);
     auto fname = filename(static_cast<int>(r % SPLIT_SIZE));
@@ -171,7 +180,9 @@ int search() {
         auto seed = fetch<uint32_t>(pos, fp);
         auto res = result(seed);
         if (res == r) {
-            if (ok(seed, rand, n)) printf("%08x %08x\n", seed, res);
+            if (ok(seed, rand, n)) {
+                cout << toHex(seed, 8) << " " << toHex(res, 8) << endl;
+            }
         } else {
             break;
         }
