@@ -7,7 +7,10 @@
 #include <vector>
 
 #define SFMT_MEXP 19937
+
+extern "C" {
 #include "./SFMT/SFMT.h"
+}
 #include "./parallel-radix-sort/parallel_radix_sort.h"
 
 using std::cin;
