@@ -14,6 +14,7 @@ extern "C" {
 #include "./SFMT/SFMT.h"
 }
 #ifdef _MSC_VER
+#include <direct.h>
 
 #define __attribute__(A)
 #include "./parallel-radix-sort/parallel_radix_sort.h"
@@ -77,7 +78,16 @@ off_t fileSize(const string& fname) {
     return st.st_size;
 }
 
+void createDir(const string &dir) {
+#if defined _MSC_VER
+    _mkdir(dir.c_str());
+#elif defined __GNUC__
+    mkdir(dir.c_str(), 0777);
+#endif
+}
+
 int create() {
+    createDir("bin");
     FILE* fps[SPLIT_SIZE];
     for (uint32_t i = 0; i < SPLIT_SIZE; i++) {
         auto fname = filename(i);
