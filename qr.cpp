@@ -16,9 +16,9 @@ using std::stringstream;
 using std::setfill;
 using std::setw;
 
-constexpr uint64_t MAX = 0x100000000;
-constexpr uint32_t BLOCK_SIZE = 0x01000000;
-constexpr uint32_t SPLIT_SIZE = 100;
+const uint64_t MAX = 0x100000000;
+const uint32_t BLOCK_SIZE = 0x01000000;
+const uint32_t SPLIT_SIZE = 100;
 
 uint32_t encode(uint64_t rand[]) {
     uint64_t r = 0;
