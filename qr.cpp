@@ -71,7 +71,7 @@ off_t fileSize(const string& fname) {
 
 int create() {
     FILE* fps[SPLIT_SIZE];
-    for (int i = 0; i < SPLIT_SIZE; i++) {
+    for (uint32_t i = 0; i < SPLIT_SIZE; i++) {
         auto fname = filename(i);
         fps[i] = fopen(fname.c_str(), "wb");
     }
@@ -80,11 +80,11 @@ int create() {
     for (uint64_t count = 0; count < MAX; count += BLOCK_SIZE) {
         if (count % 0x100000 == 0) cout << toHex(count, 8) << endl;
 #pragma omp parallel for
-        for (int i = 0; i < BLOCK_SIZE; i++) {
+        for (uint32_t i = 0; i < BLOCK_SIZE; i++) {
             auto seed = count + i;
             entries[i] = (seed << 32) | result(seed);
         }
-        for (int i = 0; i < BLOCK_SIZE; i++) {
+        for (uint32_t i = 0; i < BLOCK_SIZE; i++) {
             uint32_t last = (entries[i] & 0xFFFFFFFF) % SPLIT_SIZE;
             fwrite(&entries[i], sizeof(uint64_t), 1, fps[last]);
         }
@@ -118,20 +118,20 @@ void writeEntries(int i, const vector<T>& entries) {
 
 int sort() {
     for (uint32_t i = 0; i < SPLIT_SIZE; i++) {
-        printf("i = %d\n", i);
+        cout << "i = " << i << endl;
         auto entries = fetchEntries<uint64_t>(i);
         auto sz = entries.size();
 
         vector<uint32_t> results(sz);
         vector<uint32_t> seeds(sz);
-        for (int j = 0; j < sz; j++) {
+        for (uint32_t j = 0; j < sz; j++) {
             seeds[j] = entries[j] >> 32;
             results[j] = entries[j] & 0xFFFFFFFF;
         }
         parallel_radix_sort::PairSort<uint32_t, uint32_t> pair_sort;
         pair_sort.Init(sz);
         auto sorted = pair_sort.Sort(results.data(), seeds.data(), sz);
-        for (int j = 0; j < sz; j++) {
+        for (uint32_t j = 0; j < sz; j++) {
             seeds[j] = sorted.second[j];
         }
         writeEntries<uint32_t>(i, seeds);
