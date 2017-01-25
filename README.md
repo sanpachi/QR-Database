@@ -3,7 +3,7 @@
 ## Usage
 ```
 # init
-$ git clone --recursive https://github.com/odanado/QR-Database
+$ git clone --recursive https://github.com/RNGeek/QR-Database
 $ cd QR-Database
 $ mkdir bin
 $ make
