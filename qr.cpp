@@ -1,3 +1,5 @@
+#pragma warning(disable:4996)
+
 #include <sys/stat.h>
 #include <cstdint>
 #include <iomanip>
@@ -11,7 +13,13 @@
 extern "C" {
 #include "./SFMT/SFMT.h"
 }
+#ifdef _MSC_VER
+
+#define __attribute__(A)
 #include "./parallel-radix-sort/parallel_radix_sort.h"
+#else
+#include "./parallel-radix-sort/parallel_radix_sort.h"
+#endif
 
 using std::cin;
 using std::cout;
@@ -80,7 +88,7 @@ int create() {
     for (uint64_t count = 0; count < MAX; count += BLOCK_SIZE) {
         if (count % 0x100000 == 0) cout << toHex(count, 8) << endl;
 #pragma omp parallel for
-        for (uint32_t i = 0; i < BLOCK_SIZE; i++) {
+        for (int i = 0; i < BLOCK_SIZE; i++) {
             auto seed = count + i;
             entries[i] = (seed << 32) | result(seed);
         }
