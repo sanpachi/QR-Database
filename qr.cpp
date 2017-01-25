@@ -1,27 +1,49 @@
+#pragma warning(disable:4996)
+
 #include <sys/stat.h>
 #include <cstdint>
-#include <cstdio>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
 
 #define SFMT_MEXP 19937
-#include "./SFMT/SFMT.h"
-#include "./parallel-radix-sort/parallel_radix_sort.h"
 
+extern "C" {
+#include "./SFMT/SFMT.h"
+}
+#ifdef _MSC_VER
+#include <direct.h>
+
+#define __attribute__(A)
+#include "./parallel-radix-sort/parallel_radix_sort.h"
+#else
+#include "./parallel-radix-sort/parallel_radix_sort.h"
+#endif
+
+using std::cin;
+using std::cout;
+using std::endl;
 using std::vector;
 using std::string;
 using std::stringstream;
 using std::setfill;
 using std::setw;
 
-constexpr uint64_t MAX = 0x100000000;
-constexpr uint32_t BLOCK_SIZE = 0x01000000;
-constexpr uint32_t SPLIT_SIZE = 100;
+const uint64_t MAX = 0x100000000;
+const uint32_t BLOCK_SIZE = 0x01000000;
+const uint32_t SPLIT_SIZE = 100;
+
+template <typename T>
+string toHex(T num, uint32_t radix) {
+    std::stringstream ss;
+    ss << std::hex << std::setw(radix) << std::setfill('0') << num;
+    return ss.str();
+}
 
 uint32_t encode(uint64_t rand[]) {
-    uint64_t r = 0;
+    uint32_t r = 0;
     for (int i = 0; i < 7; i++) {
         r = r * 17 + (rand[i] % 17);
     }
@@ -56,23 +78,31 @@ off_t fileSize(const string& fname) {
     return st.st_size;
 }
 
+void createDir(const string &dir) {
+#if defined _MSC_VER
+    _mkdir(dir.c_str());
+#elif defined __GNUC__
+    mkdir(dir.c_str(), 0777);
+#endif
+}
+
 int create() {
+    createDir("bin");
     FILE* fps[SPLIT_SIZE];
-    for (int i = 0; i < SPLIT_SIZE; i++) {
+    for (uint32_t i = 0; i < SPLIT_SIZE; i++) {
         auto fname = filename(i);
         fps[i] = fopen(fname.c_str(), "wb");
     }
     vector<uint64_t> entries;
     entries.resize(BLOCK_SIZE);
     for (uint64_t count = 0; count < MAX; count += BLOCK_SIZE) {
-        if (count % 0x100000 == 0)
-            printf("%08x\n", static_cast<uint32_t>(count));
+        if (count % 0x100000 == 0) cout << toHex(count, 8) << endl;
 #pragma omp parallel for
         for (int i = 0; i < BLOCK_SIZE; i++) {
             auto seed = count + i;
             entries[i] = (seed << 32) | result(seed);
         }
-        for (int i = 0; i < BLOCK_SIZE; i++) {
+        for (uint32_t i = 0; i < BLOCK_SIZE; i++) {
             uint32_t last = (entries[i] & 0xFFFFFFFF) % SPLIT_SIZE;
             fwrite(&entries[i], sizeof(uint64_t), 1, fps[last]);
         }
@@ -106,20 +136,20 @@ void writeEntries(int i, const vector<T>& entries) {
 
 int sort() {
     for (uint32_t i = 0; i < SPLIT_SIZE; i++) {
-        printf("i = %d\n", i);
+        cout << "i = " << i << endl;
         auto entries = fetchEntries<uint64_t>(i);
         auto sz = entries.size();
 
         vector<uint32_t> results(sz);
         vector<uint32_t> seeds(sz);
-        for (int j = 0; j < sz; j++) {
+        for (uint32_t j = 0; j < sz; j++) {
             seeds[j] = entries[j] >> 32;
             results[j] = entries[j] & 0xFFFFFFFF;
         }
         parallel_radix_sort::PairSort<uint32_t, uint32_t> pair_sort;
         pair_sort.Init(sz);
         auto sorted = pair_sort.Sort(results.data(), seeds.data(), sz);
-        for (int j = 0; j < sz; j++) {
+        for (uint32_t j = 0; j < sz; j++) {
             seeds[j] = sorted.second[j];
         }
         writeEntries<uint32_t>(i, seeds);
@@ -147,9 +177,9 @@ bool ok(uint32_t seed, uint64_t* rand, int len) {
 int search() {
     uint64_t rand[15];
     int n;
-    scanf("%d", &n);
+    cin >> n;
     for (int i = 0; i < n; i++) {
-        scanf("%ld", rand + i);
+        cin >> rand[i];
     }
     auto r = encode(rand);
     auto fname = filename(static_cast<int>(r % SPLIT_SIZE));
@@ -171,7 +201,9 @@ int search() {
         auto seed = fetch<uint32_t>(pos, fp);
         auto res = result(seed);
         if (res == r) {
-            if (ok(seed, rand, n)) printf("%08x %08x\n", seed, res);
+            if (ok(seed, rand, n)) {
+                cout << toHex(seed, 8) << " " << toHex(res, 8) << endl;
+            }
         } else {
             break;
         }
