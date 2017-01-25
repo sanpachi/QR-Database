@@ -43,7 +43,7 @@ string toHex(T num, uint32_t radix) {
 }
 
 uint32_t encode(uint64_t rand[]) {
-    uint64_t r = 0;
+    uint32_t r = 0;
     for (int i = 0; i < 7; i++) {
         r = r * 17 + (rand[i] % 17);
     }
